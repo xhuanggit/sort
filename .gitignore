@@ -4,3 +4,7 @@ demo
 multidemo
 stresstest
 *.dSYM
+GPATH
+GRTAGS
+GTAGS
+NppGTags.cfg
