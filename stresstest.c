@@ -16,7 +16,7 @@
 
 /* Used to control the stress test */
 #define SEED 123
-#define MAXSIZE 1600
+#define MAXSIZE 45000
 #define TESTS 1000
 
 #define RAND_RANGE(__n, __min, __max) \
@@ -31,6 +31,7 @@ enum {
   FILL_SORTED_10000,
   FILL_SWAPPED_N2,
   FILL_SWAPPED_N8,
+  FILL_EVIL,
   FILL_LAST_ELEMENT
 };
 
@@ -42,7 +43,8 @@ char *test_names[FILL_LAST_ELEMENT] = {
   "sorted blocks of length 100",
   "sorted blocks of length 10000",
   "swapped size/2 pairs",
-  "swapped size/8 pairs"
+  "swapped size/8 pairs",
+  "known evil data"
 };
 
 /* used for stdlib */
@@ -116,14 +118,21 @@ static void fill_swapped(int64_t *dst, const int size, const int swapped_cnt) {
 
   for (i = 0; i < swapped_cnt; i++) {
     ind1 = lrand48();
-    RAND_RANGE(ind1, 0, size);
+    RAND_RANGE(ind1, 0, size - 1);
     ind2 = lrand48();
-    RAND_RANGE(ind2, 0, size);
+    RAND_RANGE(ind2, 0, size - 1);
+    tmp = dst[ind1];
+    dst[ind1] = dst[ind2];
+    dst[ind2] = tmp;
   }
+}
 
-  tmp = dst[ind1];
-  dst[ind1] = dst[ind2];
-  dst[ind2] = tmp;
+static void fill_evil(int64_t *dst, const int size) {
+  int i;
+
+  for (i = 0; i < size; i++) {
+    dst[i] = i ^ 1;
+  }
 }
 
 static void fill(int64_t *dst, const int size, int type) {
@@ -156,6 +165,10 @@ static void fill(int64_t *dst, const int size, int type) {
     fill_same(dst, size);
     break;
 
+  case FILL_EVIL:
+    fill_evil(dst, size);
+    break;
+
   case FILL_RANDOM:
   default:
     fill_random(dst, size);
@@ -169,7 +182,6 @@ static void fill(int64_t *dst, const int size, int type) {
   printf("%-29s", "stdlib " #name ); \
   for (test = 0; test < sizes_cnt; test++) { \
     int64_t size = sizes[test]; \
-    int64_t dst[MAXSIZE]; \
     fill(dst, size, type); \
     usec1 = utime(); \
     name (dst, size, sizeof(int64_t), simple_cmp); \
@@ -191,7 +203,6 @@ static void fill(int64_t *dst, const int size, int type) {
   printf("%-29s", "sort.h " #name); \
   for (test = 0; test < sizes_cnt; test++) { \
     int64_t size = sizes[test]; \
-    int64_t dst[MAXSIZE]; \
     fill(dst, size, type); \
     usec1 = utime(); \
     sorter_ ## name (dst, size); \
@@ -209,6 +220,7 @@ static void fill(int64_t *dst, const int size, int type) {
 int run_tests(int64_t *sizes, int sizes_cnt, int type) {
   int test, res;
   double usec1, usec2, diff;
+  int64_t * dst = (int64_t *)malloc(MAXSIZE * sizeof(int64_t));
   printf("-------\nRunning tests with %s:\n-------\n", test_names[type]);
   TEST_STDLIB(qsort);
 #if !defined(__linux__) && !defined(__CYGWIN__)
@@ -233,6 +245,7 @@ int run_tests(int64_t *sizes, int sizes_cnt, int type) {
   TEST_SORT_H(sqrt_sort);
   TEST_SORT_H(rec_stable_sort);
   TEST_SORT_H(grail_sort_dyn_buffer);
+  free(dst);
   return 0;
 }
 
@@ -348,8 +361,10 @@ int main(void) {
   fill_random(sizes, TESTS);
 
   for (i = 0; i < TESTS; i++) {
-    RAND_RANGE(sizes[i], 0, MAXSIZE);
+    RAND_RANGE(sizes[i], 1, MAXSIZE);
   }
+
+  sizes[TESTS - 1] = MAXSIZE;
 
   for (i = 0; i < FILL_LAST_ELEMENT; i++) {
     int result = run_tests(sizes, TESTS, i);

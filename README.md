@@ -6,8 +6,8 @@ sort.h
 Overview
 --------
 
-`sort.h` is an implementation a ton of sorting algorithms in C with a
-user-defined type that is defined at include time.
+`sort.h` is an implementation of a ton of sorting algorithms in C with a
+user-defined type that is provided at include time.
 
 This means you don't have to pay the function call overhead of using
 a standard library routine. This also gives us the power of higher-level
@@ -18,14 +18,14 @@ the entirety of this sorting library is contained in the `sort.h` header file.
 
 You get the choice of many sorting routines, including:
 
-* Shellsort
-* Binary insertion sort
-* Heapsort
+* Timsort (stable)
 * Quicksort
 * Merge sort (stable)
 * In-place merge sort (*not* stable)
-* Selection sort (ugh -- this is really only here for comparison)
-* Timsort (stable)
+* Shellsort
+* Binary insertion sort
+* Heapsort
+* Selection sort (this is really only here for comparison)
 * Grail sort (stable)
   * Based on [`B-C. Huang and M. A. Langston, *Fast Stable Merging and Sorting in
   Constant Extra Space* (1989-1992)`](http://comjnl.oxfordjournals.org/content/35/6/643.full.pdf).
@@ -78,10 +78,10 @@ If you are going to use your own custom type, you must redefine
 a value less than zero if `x < y`, equal to zero if `x == y`, and
 greater than 0 if `x > y`.
 
-The default just uses the builtin `<`, `==`, and `>` operators:
+The default just uses the builtin `<` operators:
 
 ```c
-#define SORT_CMP(x, y)  ((x) < (y) ? -1 : ((x) == (y) ? 0 : 1))
+#define SORT_CMP(x, y)  ((x) < (y) ? -1 : ((y) < (x) ? 1 : 0))
 ```
 
 It is often just fine to just subtract the arguments as well (though
